@@ -1,0 +1,325 @@
+<!-- 无网络连接页面 -->
+<view class="no-network-page" wx:if="{{!isNetworkConnected}}">
+   <view class="no-network-content">
+      <view class="no-network-icon">
+         <text class="icon-text">!</text>
+      </view>
+      <text class="no-network-title">网络连接已断开</text>
+      <text class="no-network-desc">请检查您的网络设置后重试</text>
+      <button class="no-network-btn" bindtap="onRetryNetwork" hover-class="no-network-btn-hover">
+         重新加载
+      </button>
+   </view>
+</view>
+<!-- 主页面内容 -->
+<view class="container" wx:if="{{isNetworkConnected}}">
+   <!-- =========================== -->
+   <!-- 0. 测量管理 卡片 -->
+   <!-- =========================== -->
+   <!-- 连接、状态显示：左右分栏 -->
+   <view class="card measure-admin">
+      <!-- 卡片标题栏 -->
+      <view class="card-header">
+         <text class="title">测量管理</text>
+         <view class="device-name">
+            <text class="device-label">设备:</text>
+            {{deviceName}}
+         </view>
+         <view class="value {{!isConnected && !isConnecting ? 'status-disconnected' : ''}}">
+            {{statusText}}
+         </view>
+      </view>
+      <!-- 第一行 -->
+      <view class="measure-admin-row1">
+         <!-- 左侧，连接设备 -->
+         <button class="connect-device{{isConnected ? ' connected' : ''}}" hover-class="btn-hover" bindtap="onTapConnect">
+            {{isConnected ? '断开连接' : '连接设备'}}
+         </button>
+         <!-- 右侧，保存数据按钮 -->
+         <button class="btn-export" hover-class="btn-hover-blue" bindtap="onTapSaveData">
+            保存数据
+         </button>
+      </view>
+      <!-- 间隔行 -->
+      <view style="height: 10px;"></view>
+      <!-- 第二行 -->
+      <view class="measure-admin-row2">
+         <!-- 左侧，开始/停止测量 -->
+         <button class="start_measure{{isBtnDisabled ? ' measuring' : ''}}" hover-class="btn-hover" bindtap="onTapMeasure">
+            {{isBtnDisabled ? '停止测量' : '开始测量'}}
+         </button>
+         <!-- 归零按钮，绑定长按和短按事件 -->
+         <button class="btn-reset{{isBtnDisabled ? ' disabled' : ''}}" hover-class="btn-hover-gray" bindtap="onTapReset" bindlongpress="onLongPressReset" disabled="{{isBtnDisabled}}">
+            归零
+         </button>
+      </view>
+      <!-- 间隔行 -->
+      <view style="height: 10px;"></view>
+      <!-- 第三行，三个下拉选择框 -->
+      <view class="measure-admin-row3">
+         <picker class="dropdown-picker" bindchange="onSideChange" value="{{sideIndex}}" range="{{sideOptions}}">
+            <view class="picker-content">
+               <text class="picker-label">侧别</text>
+               <text class="picker-value">{{sideOptions[sideIndex]}}</text>
+               <text class="picker-arrow">▼</text>
+            </view>
+         </picker>
+         <!-- 部位和动作合并选择器 -->
+         <view class="dropdown-picker combined-picker" bindtap="onOpenPickerModal">
+            <view class="picker-content">
+               <text class="picker-label">部位</text>
+               <text class="picker-value">{{bodyPartOptions[bodyPartIndex]}}</text>
+               <text class="picker-arrow">▼</text>
+            </view>
+         </view>
+         <view class="dropdown-picker combined-picker" bindtap="onOpenPickerModal">
+            <view class="picker-content">
+               <text class="picker-label">动作</text>
+               <text class="picker-value">{{rotationOptions[rotationIndex]}}</text>
+               <text class="picker-arrow">▼</text>
+            </view>
+         </view>
+      </view>
+      <!-- 自定义选择器弹窗 - 使用 Vant Picker -->
+      <van-popup show="{{showPickerModal}}" position="bottom" custom-style="border-radius: 16px 16px 0 0;" bind:close="onClosePickerModal" round>
+         <van-picker show-toolbar title="选择部位和动作" columns="{{pickerColumns}}" value-key="name" bind:confirm="onConfirmPickerModal" bind:cancel="onClosePickerModal" bind:change="onPickerModalChange" />
+      </van-popup>
+      <!-- 间隔行 -->
+      <view style="height: 10px;"></view>
+      <!-- 第4行，实时角度、实时力量 -->
+      <view class="RT-card">
+         <view class="RT-data">
+            <text class="label">实时力量</text>
+            <text class="value" style="color: #487feb;">{{display.force}} kg</text>
+         </view>
+         <view class="RT-data">
+            <text class="label">实时角度</text>
+            <text class="value" style="color: #487feb;">{{display.angle}} °</text>
+         </view>
+      </view>
+   </view>
+   <!-- =========================== -->
+   <!-- 1. MMT 卡片 (力值测量模块) -->
+   <!-- =========================== -->
+   <view class="card mmt-card">
+      <!-- 卡片标题栏 -->
+      <view class="card-header">
+         <text class="title">等长测试</text>
+         <!-- 这里的单位显示 F(kg) -->
+         <text class="subtitle">徒手肌力评定</text>
+      </view>
+      <!-- 卡片内容区：左右分栏 -->
+      <view class="card-body">
+         <!-- 左侧：数值显示区 (占 30%) -->
+         <view class="left-panel">
+            <!-- 峰值显示框 -->
+            <view class="peak-box">
+               <text class="peak-label">峰值:</text>
+               <text class="peak-value">{{display.peak}} kg</text>
+            </view>
+            <view class="metric-row">
+               <text class="label">RFD:</text>
+               <text class="value">{{display.rfd}}</text>
+            </view>
+            <view class="metric-row">
+               <text class="label">保持时间:</text>
+               <text class="value">{{display.duration}} s</text>
+            </view>
+            <!-- 运动时间显示 -->
+            <!-- <view class="metric-row">
+               <text class="label">运动时间</text>
+               <text class="value">{{display.activity}} s</text>
+            </view> -->
+            <view class="metric-row">
+               <text class="label">对比差异:</text>
+               <text class="value">{{display.percentDiff}} %</text>
+            </view>
+            <!-- IMU 角度变化显示 -->
+            <!-- <view class="metric-row">
+               <text class="label">imu角度变化</text>
+               <text class="value">{{display.angleDiff}} %</text>
+            </view> -->
+         </view>
+         <!-- 右侧：图表区 (占 70%) -->
+         <view class="right-panel">
+            <canvas type="2d" id="forceCanvas" class="forceCanvas" bindtouchstart="handleTouchStart" bindtouchmove="handleTouchMove" bindtouchend="handleTouchEnd"></canvas>
+            <!-- 全屏按钮 -->
+            <view class="fullscreen-btn" bindtap="onOpenFullscreen">
+               <text class="fullscreen-icon">⛶</text>
+            </view>
+         </view>
+      </view>
+      <!-- card-body 结束 -->
+      <!-- measure-admin-row2 -->
+   </view>
+   <!-- =========================== -->
+   <!-- 2. 最近测试卡片 -->
+   <!-- =========================== -->
+   <view class="card history-card">
+      <view class="card-header">
+         <text class="title">最近测试趋势</text>
+         <text class="subtitle">近 5 次峰值</text>
+      </view>
+      <view class="card-body">
+         <!-- 左侧：差异显示 -->
+         <view class="history-left">
+            <view class="history-box">
+               <text class="history-label">较上次变化:</text>
+               <text class="history-value {{historyDiff.isIncrease ? 'up' : 'down'}}">{{historyDiff.isIncrease ? '↑' : '↓'}}{{historyDiff.val}}kg</text>
+            </view>
+            <view class="history-box">
+               <text class="history-label">幅度:</text>
+               <text class="history-value">{{historyDiff.percent}}</text>
+            </view>
+         </view>
+         <!-- 右侧：趋势图 Canvas -->
+         <view class="history-right">
+            <canvas type="2d" id="historyCanvas" style="width: 100%;height: 100%;" bindtouchstart="onHistoryTouch"></canvas>
+            <!-- 全屏按钮 -->
+            <view class="fullscreen-btn history-fullscreen-btn" bindtap="onOpenHistoryFullscreen">
+               <text class="fullscreen-icon">⛶</text>
+            </view>
+         </view>
+      </view>
+   </view>
+   <!-- =========================== -->
+   <!-- 3. ROM卡片 -->
+   <!-- =========================== -->
+   <view class="card rom-card">
+      <view class="card-header">
+         <view class="title-group">
+            <text class="title">ROM</text>
+         </view>
+         <text class="subtitle">关节活动度</text>
+      </view>
+      <view class="rom-container">
+         <!-- 1. 左面板：当次测量/实时曲线 -->
+         <view class="rom-panel left-border">
+            <view class="rom-meta">
+               <view class="rom-main-val">
+                  <text class="big-angle">{{display.angleMax}}°</text>
+               </view>
+            </view>
+            <!-- 当次实时曲线 -->
+            <canvas type="2d" id="romRealtimeCanvas" class="rom-canvas" bindtouchstart="onRomTouchStart" bindtouchmove="onRomTouchMove" bindtouchend="onRomTouchEnd"></canvas>
+            <!-- 全屏按钮 -->
+            <view class="fullscreen-btn rom-fullscreen-btn" bindtap="onOpenROMFullscreen">
+               <text class="fullscreen-icon">⛶</text>
+            </view>
+         </view>
+         <!-- 2. 右面板：历次最大角度趋势 -->
+         <view class="rom-panel">
+            <view class="rom-meta">
+               <text class="rom-side-label">趋势</text>
+               <view class="rom-trend-mini {{romTrend.isIncrease ? 'up' : 'down'}}">
+                  {{romTrend.isIncrease ? '↑' : '↓'}} {{romTrend.percent}}
+               </view>
+               <text class="label-hint">近 5 次峰值</text>
+            </view>
+            <!-- 历史趋势曲线 -->
+            <canvas type="2d" id="romHistoryCanvas" class="rom-canvas" bindtouchstart="onROMHistoryTouch"></canvas>
+            <!-- 全屏按钮 -->
+            <view class="fullscreen-btn rom-history-fullscreen-btn" bindtap="onOpenROMHistoryFullscreen">
+               <text class="fullscreen-icon">⛶</text>
+            </view>
+         </view>
+      </view>
+   </view>
+   <!-- 设备选择弹窗 -->
+   <van-popup show="{{ showDeviceList }}" position="bottom" round custom-style="height: 50%; padding-top: 10px;" bind:close="onCloseDeviceList">
+      <view class="device-list-header">
+         <text class="list-title">发现多台测力仪</text>
+         <text class="list-subtitle">请选择信号最强的设备连接</text>
+      </view>
+      <scroll-view scroll-y class="device-list-scroll">
+         <view class="device-item" wx:for="{{ deviceList }}" wx:key="deviceId" bindtap="onSelectDevice" data-id="{{ item.deviceId }}">
+            <view class="device-item-left">
+               <view class="device-icon">BLE</view>
+               <view class="device-info">
+                  <text class="device-name-text">{{ item.name || '未知设备' }}</text>
+                  <text class="device-mac">{{ item.deviceId }}</text>
+               </view>
+            </view>
+            <view class="device-item-right">
+               <text class="rssi-num">{{ item.RSSI }} dBm</text>
+               <!-- 信号格：根据 signalLevel (1-4) 显示 -->
+               <view class="signal-icon">
+                  <view class="sig-bar {{ item.signalLevel >= 1 ? 'active' : '' }}"></view>
+                  <view class="sig-bar {{ item.signalLevel >= 2 ? 'active' : '' }}"></view>
+                  <view class="sig-bar {{ item.signalLevel >= 3 ? 'active' : '' }}"></view>
+                  <view class="sig-bar {{ item.signalLevel >= 4 ? 'active' : '' }}"></view>
+               </view>
+            </view>
+         </view>
+      </scroll-view>
+   </van-popup>
+</view>
+<!-- MMT RT曲线全屏弹窗 -->
+<view class="fullscreen-modal {{showFullscreen ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+   <!-- 顶部栏：峰值/运动时间 + 关闭按钮 -->
+   <view class="fullscreen-header">
+      <view class="fullscreen-legend">
+         <view class="legend-item">
+            <text class="legend-label">峰值:</text>
+            <text class="legend-value">{{display.peak}} kg</text>
+         </view>
+         <view class="legend-item">
+            <text class="legend-label">运动时间:</text>
+            <text class="legend-value">{{display.activity}} s</text>
+         </view>
+      </view>
+      <view class="fullscreen-close" bindtap="onCloseFullscreen">
+         <text>✕</text>
+      </view>
+   </view>
+   <!-- 全屏Canvas -->
+   <view class="fullscreen-canvas-container">
+      <canvas type="2d" id="fullscreenCanvas" class="fullscreen-canvas" bindtouchstart="onFullscreenTouchStart" bindtouchmove="onFullscreenTouchMove" bindtouchend="onFullscreenTouchEnd"></canvas>
+   </view>
+</view>
+<!-- ROM RT曲线全屏弹窗 -->
+<view class="fullscreen-modal {{showROMFullscreen ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+   <!-- 顶部栏：关闭按钮在右侧 -->
+   <view class="fullscreen-header">
+      <view style="flex: 1;"></view>
+      <view class="fullscreen-close" bindtap="onCloseROMFullscreen">
+         <text>✕</text>
+      </view>
+   </view>
+   <!-- 全屏Canvas -->
+   <view class="fullscreen-canvas-container">
+      <canvas type="2d" id="fullscreenROMCanvas" class="fullscreen-canvas" bindtouchstart="onFullscreenROMTouchStart" bindtouchmove="onFullscreenROMTouchMove" bindtouchend="onFullscreenROMTouchEnd"></canvas>
+   </view>
+</view>
+<!-- 最近测试趋势全屏弹窗 -->
+<view class="fullscreen-modal {{showHistoryFullscreen ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+   <!-- 顶部栏：标签 + 关闭按钮 -->
+   <view class="fullscreen-header">
+      <view class="fullscreen-label" wx:if="{{historyFullscreenLabel}}">
+         {{historyFullscreenLabel}}
+      </view>
+      <view class="fullscreen-close" bindtap="onCloseHistoryFullscreen">
+         <text>✕</text>
+      </view>
+   </view>
+   <!-- 全屏Canvas -->
+   <view class="fullscreen-canvas-container">
+      <canvas type="2d" id="fullscreenHistoryCanvas" class="fullscreen-canvas" bindtouchstart="onFullscreenHistoryTouch"></canvas>
+   </view>
+</view>
+<!-- ROM趋势全屏弹窗 -->
+<view class="fullscreen-modal {{showROMHistoryFullscreen ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+   <!-- 顶部栏：标签 + 关闭按钮 -->
+   <view class="fullscreen-header">
+      <view class="fullscreen-label" wx:if="{{romHistoryFullscreenLabel}}">
+         {{romHistoryFullscreenLabel}}
+      </view>
+      <view class="fullscreen-close" bindtap="onCloseROMHistoryFullscreen">
+         <text>✕</text>
+      </view>
+   </view>
+   <!-- 全屏Canvas -->
+   <view class="fullscreen-canvas-container">
+      <canvas type="2d" id="fullscreenROMHistoryCanvas" class="fullscreen-canvas" bindtouchstart="onFullscreenROMHistoryTouch"></canvas>
+   </view>
+</view>
